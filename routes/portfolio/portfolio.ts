@@ -57,7 +57,7 @@ async function getAccountBalance(network_name: string, acc_balance: number, addr
     } else {
         balance = await getBalanceRPC(network_name, address);
     }
-    return balance;
+    return Math.round(balance as number);
 }
 
 async function getBalanceRPC(network_name: string, address: string): Promise<Number> {
