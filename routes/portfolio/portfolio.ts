@@ -37,13 +37,13 @@ async function getCurrencies(pricesUSD: Map<String, Number>): Promise<Currency[]
         const priceUSD = pricesUSD.get(account.network_name);
         const balance = await getAccountBalance(account.network_name, account.balance, account.address);
         const balanceUSD = (balance as number) * (priceUSD as number);
-        const formattedBalanceUSD = Number(balanceUSD.toFixed(2));
+        const roundedBalanceUSD = Number(balanceUSD.toFixed(0));
         currencies.push(
             {
                 name: account.network_name,
-                cur_price: priceUSD,
+                cur_price: Number(priceUSD.toFixed(0)),
                 balance: balance,
-                balance_usd: formattedBalanceUSD
+                balance_usd: roundedBalanceUSD
             }
         );
     }
@@ -57,7 +57,7 @@ async function getAccountBalance(network_name: string, acc_balance: number, addr
     } else {
         balance = await getBalanceRPC(network_name, address);
     }
-    return Math.round(balance as number);
+    return balance;
 }
 
 async function getBalanceRPC(network_name: string, address: string): Promise<Number> {
