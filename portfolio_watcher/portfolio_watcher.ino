@@ -1,33 +1,42 @@
-#include <ESP8266WiFi.h>
+#include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
 #include <GSON.h>
-#include <ESP8266HTTPClient.h>
+#include <HTTPClient.h>
 
 /* ----- Connection Preferences ----- */
 static char ssid[] = "";
 static char pass[] = "";
 static char url[] = "";
 
+// Change LCD address on your own if neccessarry
+LiquidCrystal_I2C lcd(0x27, 8, 2);
+
 struct Page {
-  char coin;
-  int priceUSD;
-  double volume;
-  int volumeUSD;
+  String coin;
+  String priceUSD;
+  String volume;
+  String volumeUSD;
 };
 
 void setup() {
   Serial.begin(9600);
-  bool result = connectToWiFi(ssid, pass);
+  lcd.init();
+  bool result = connectToWiFi(ssid, pass); 
   String response; 
-  makeRequest(&response);
-  struct Page pages[1];
-  parseJSON(response.c_str(), pages);
-}
+  bool serverResult = makeRequest(&response); 
+  if (!serverResult) {
+    Serial.println(F("Not successfull request. Terminating..."));
+    return;
+  }
 
-void parseJSON(const char * source, struct Page * result) {
-  gson::Parser parser;
-  parser.parse(source);
-  int size = parser.size();
-  Serial.println(size);
+  int limit;
+  Page* pages = parseJSON(response.c_str(), &limit);
+  for (int i = 0; i < limit; i++) {
+    lcd.clear();
+    displayPage(pages[i]);
+    delay(5000);
+  }
+  free(pages);
 }
 
 bool connectToWiFi(char ssid[], char pass[]) {
@@ -62,6 +71,58 @@ bool makeRequest(String * response) {
     Serial.printf("Error. Code: %d\n", status);
   }
   return status > 0;
+}
+
+Page* parseJSON(const char * source, int * limit) {
+  gson::Parser parser;
+  parser.parse(source);
+
+  gson::Entry currencies = parser.get("currencies");
+  int size = currencies.length();
+  *limit = size;
+  struct Page* pages = (Page*) calloc(size, sizeof(struct Page));
+
+  for (int i = 0; i < size; i++) {
+    gson::Entry obj = currencies.get(i);
+    struct Page el;
+
+    el.coin = obj.get("name").value().toString();
+    el.priceUSD = obj.get("cur_price").value().toString();
+    el.volume = obj.get("balance").value().toString();
+    el.volumeUSD = obj.get("balance_usd").value().toString();
+    
+    pages[i] = el;
+  }
+
+  parser.reset(); // Free memory used by parser
+  return pages;
+}
+
+void getWorth(const char * jsonSource, String* btc, String* usd) {
+  gson::Parser parser;
+  parser.parse(jsonSource);
+  btc->concat(parser.get("total_btc").value().toString());
+  usd->concat(parser.get("total_usd").value().toString());
+  parser.reset();
+}
+
+
+void displayPage(Page p) {
+  String shortName = p.coin.substring(0, 3);
+  p.priceUSD.concat("$");
+  p.volumeUSD.concat("$");
+
+  // lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print(shortName);
+  lcd.setCursor(4, 0);
+  lcd.print(p.priceUSD);
+  lcd.setCursor(11, 0);
+  lcd.print(p.volumeUSD);
+  lcd.setCursor(0, 1);
+  lcd.print("Q:");
+  lcd.setCursor(3, 1);
+  lcd.print(p.volume);
 }
 
 void loop() {
