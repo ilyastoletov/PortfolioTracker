@@ -6,6 +6,7 @@ export type PortfolioResponse = {
 
 export type Currency = {
     name: String,
+    ticker: String,
     cur_price: Number,
     balance: Number,
     balance_usd: Number

@@ -4,8 +4,10 @@ import models from '../../src/mongo/mongo';
 import { supportedNetworks } from "../../src/blockchain/rpc";
 import IBlockchainRPC, { getRpcInstance } from "../../src/blockchain/rpc";
 import geckoClient from "../../src/gecko/coingecko";
+import { networks, Network } from "./model/networks";
 import * as asyncWrapper from "express-async-handler";
 import { isEditAddressRequest } from "./model/EditAddressRequest";
+import { CLIENT_RENEG_LIMIT } from "tls";
 
 export const accountRouter = Router();
 
@@ -36,7 +38,15 @@ accountRouter.post("/account/add", asyncWrapper(async (req: Request, res: Respon
             return;
         }
     }
-    const account = new models.Account(req.body);
+
+    const model = {
+        network_name: req.body.network_name,
+        address: address,
+        ticker: getTicker(req.body.network_name),
+        balance: req.body.balance
+    };
+
+    const account = new models.Account(model);
     account.save();
 
     if (address == null) {
@@ -65,6 +75,12 @@ async function isAddressValid(network: string, address: string): Promise<Boolean
     return isAddressValid; 
 }
 
+function getTicker(name: string): string {
+    const names = networks.map(v => v.name);
+    const nameIndex = names.indexOf(name);
+    return networks[nameIndex].ticker;
+}
+
 async function createAndSaveInitialTransaction(network: string, amount: number) {
     const currentBuyPrice = await geckoClient.getCurrentPriceUSD(network);
     const transaction = new models.Transaction({
@@ -81,19 +97,19 @@ accountRouter.get("/account/addressTrackingNetworks", (req, res) => {
 });
 
 accountRouter.get("/account/availableNetworks", asyncWrapper(async (req, res) => {
-    const allNetworks = ["Bitcoin", "Ethereum", "Solana", "Toncoin", "Avalanche (С-chain)", "Tether USD", "BNB", "Ripple", "Tron", "Monero", "Polygon"]
+    const allNetworks = networks;
     const availableNetworks = await excludeExistingNetworks(allNetworks);
     res.status(200).send(availableNetworks);
 }));
 
-async function excludeExistingNetworks(allNetworks: string[]): Promise<String[]> {
+async function excludeExistingNetworks(allNetworks: Network[]): Promise<String[]> {
     const existingNetworkNames = [];
     (await models.Account.find({})).map(
         (v) => { existingNetworkNames.push(v.network_name) }
     );
     const availableNetworks = [];
     for (const network of allNetworks) {
-        if (existingNetworkNames.indexOf(network) === -1) {
+        if (existingNetworkNames.indexOf(network.name) === -1) {
             availableNetworks.push(network);
         }
     }

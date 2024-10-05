@@ -7,6 +7,11 @@ const accountSchema = new mongoose.Schema(
             require: true,
             unique: true,
         },
+        ticker: {
+            type: String,
+            require: true,
+            unique: true
+        },
         address: {
             type: String,
             require: false,

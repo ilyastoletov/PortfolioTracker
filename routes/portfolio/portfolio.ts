@@ -41,6 +41,7 @@ async function getCurrencies(pricesUSD: Map<String, Number>): Promise<Currency[]
         currencies.push(
             {
                 name: account.network_name,
+                ticker: account.ticker,
                 cur_price: Number(priceUSD.toFixed(0)),
                 balance: balance,
                 balance_usd: roundedBalanceUSD

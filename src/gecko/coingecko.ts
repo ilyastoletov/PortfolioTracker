@@ -33,7 +33,7 @@ class CoinGeckoClient {
         )
         for (const key in data) {
             const item = data[key].usd;
-            prices.set(this.backwardsMap(key), item);
+            prices.set(this.mapIdToNetworkName(key), item);
         }
         return prices;
     }
@@ -64,7 +64,7 @@ class CoinGeckoClient {
         }
     }
 
-    private backwardsMap(id: string): string {
+    private mapIdToNetworkName(id: string): string {
         switch(id) {
             case "the-open-network":
                 return "Toncoin";
