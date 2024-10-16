@@ -8,5 +8,6 @@ Repository contains:
 - And arduino sketch (**arduino** branch)
 
 # Improvements roadmap
+- Add API endpoints documentation (**backend**)
 - Make caching of prices fetched from CoinGecko API (**backend**)
 - Add buttons control over currency pages (**arduino**)
